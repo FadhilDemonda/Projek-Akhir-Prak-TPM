@@ -9,6 +9,9 @@ class AppStrings {
   static const String instansi = 'Instansi';
   static const String enterUsername = 'Masukkan Username';
   static const String enterInstansi = 'Masukkan Instansi';
+  static const String password = "Password"; // Add this for password label
+  static const String enterPassword =
+      "Enter your password"; // Add this for password hint
   static const String submit = 'Submit';
   static const String required = 'Wajib diisi';
 

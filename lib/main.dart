@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'models/user_model.dart';
 import 'routes.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/register_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/noisense/noisense_screen.dart';
@@ -13,8 +17,14 @@ import 'screens/sarana_prasarana/sarana_screen.dart';
 import 'screens/noisense/barcode_scanner.dart';
 import 'constants/colors.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Hive.initFlutter();
+  // Daftarkan adapter untuk UserModel
+  Hive.registerAdapter(UserModelAdapter());
+  await Hive.openBox(
+    'userBox',
+  ); // Pastikan box sudah dibuka sebelum aplikasi berjalan
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]).then((
     _,
   ) {
@@ -62,6 +72,8 @@ class MyApp extends StatelessWidget {
         Routes.feedback: (context) => const FeedbackScreen(),
         Routes.panduan: (context) => const PanduanScreen(),
         Routes.saranaPrasarana: (context) => const SaranaPrasaranaScreen(),
+        Routes.register:
+            (context) => const RegisterScreen(), // Tambahkan rute register
       },
     );
   }

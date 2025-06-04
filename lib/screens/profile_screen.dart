@@ -102,10 +102,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         builder:
                             (_) => EditProfileScreen(
                               user: UserModel(
-                                id: user['id']!,
-                                username: user['username']!,
-                                instansi: user['instansi']!,
-                                profileImageUrl: user['profileImageUrl'],
+                                id: user['id'] ?? '', // Pastikan id tidak null
+                                username:
+                                    user['username'] ??
+                                    'Username tidak tersedia', // Menangani null
+                                instansi:
+                                    user['instansi'] ??
+                                    'Instansi tidak tersedia', // Menangani null
+                                profileImageUrl:
+                                    user['profileImageUrl'] ??
+                                    '', // Menangani null
+                                password:
+                                    user['password'] ?? '', // Menangani null
                               ),
                             ),
                       ),
@@ -113,6 +121,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                     if (updatedUser != null) {
                       _reloadUser(); // ini akan memicu setState
+                      Navigator.pop(context, 'updated'); // <- ini penting
                     }
                   },
                 ),

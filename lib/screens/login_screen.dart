@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import '../models/user_model.dart';
 import '../constants/colors.dart';
 import '../constants/string.dart';
 import '../routes.dart';
@@ -14,10 +16,10 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
-  final _instansiController = TextEditingController();
-  final AuthService _authService = AuthService();
+  final _passwordController = TextEditingController();
   bool _isLoading = false;
 
+  // Fungsi untuk login
   void _login() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
@@ -25,31 +27,45 @@ class _LoginScreenState extends State<LoginScreen> {
       });
 
       final username = _usernameController.text.trim();
-      final instansi = _instansiController.text.trim();
+      final password = _passwordController.text.trim();
 
-      final success = await _authService.login(username, instansi);
+      try {
+        // Membuka box Hive untuk verifikasi data pengguna
+        final userBox = await Hive.openBox('userBox');
+
+        // Ambil data pengguna berdasarkan username (key unik)
+        final storedUser = userBox.get(username) as UserModel?;
+
+        if (storedUser != null && storedUser.password == password) {
+          // Login berhasil, simpan status login di SharedPreferences
+          final authService = AuthService();
+          await authService.login(username, storedUser.instansi, password);
+
+          // Arahkan ke halaman dashboard
+          Navigator.pushReplacementNamed(context, Routes.dashboard);
+        } else {
+          // Tampilkan pesan error jika login gagal
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Username atau password salah. Silakan coba lagi.'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      } catch (e) {
+        print('Error logging in: $e');
+      }
 
       setState(() {
         _isLoading = false;
       });
-
-      if (success) {
-        Navigator.pushReplacementNamed(context, Routes.dashboard);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Login gagal. Silakan coba lagi.'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
     }
   }
 
   @override
   void dispose() {
     _usernameController.dispose();
-    _instansiController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
@@ -67,8 +83,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Gambar Logo Noisense
-                    Image.asset('assets/images/feedlog.jpg', height: 200, width: 200,),
+                    Image.asset(
+                      'assets/images/feedlog.jpg',
+                      height: 200,
+                      width: 200,
+                    ),
                     SizedBox(height: 24),
                     Text(
                       AppStrings.appName,
@@ -103,20 +122,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             width: 1.5,
                           ),
                         ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: AppColors.primary.withOpacity(0.7),
-                            width: 1.5,
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: AppColors.primary,
-                            width: 2,
-                          ),
-                        ),
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
@@ -125,13 +130,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         return null;
                       },
                     ),
-                    SizedBox(height: 20,),
+                    SizedBox(height: 20),
                     TextFormField(
-                      controller: _instansiController,
+                      controller: _passwordController,
+                      obscureText: true,
                       decoration: InputDecoration(
-                        labelText: AppStrings.instansi,
-                        hintText: AppStrings.enterInstansi,
-                        prefixIcon: Icon(Icons.business),
+                        labelText: AppStrings.password,
+                        hintText: AppStrings.enterPassword,
+                        prefixIcon: Icon(Icons.lock),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide(
@@ -139,20 +145,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             width: 1.5,
                           ),
                         ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: AppColors.primary.withOpacity(0.7),
-                            width: 1.5,
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: AppColors.primary,
-                            width: 2,
-                          ),
-                        ),
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
@@ -161,12 +153,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         return null;
                       },
                     ),
-
                     SizedBox(height: 32),
                     ElevatedButton(
                       onPressed: _isLoading ? null : _login,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2C2A6B), // Biru dongker
+                        backgroundColor: const Color(0xFF2C2A6B),
                         padding: EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -180,9 +171,17 @@ class _LoginScreenState extends State<LoginScreen> {
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.white, // Tulisan putih
+                                  color: Colors.white,
                                 ),
                               ),
+                    ),
+                    SizedBox(height: 32),
+                    TextButton(
+                      onPressed: () {
+                        // Arahkan ke halaman register
+                        Navigator.pushNamed(context, Routes.register);
+                      },
+                      child: const Text('Belum punya akun? Daftar di sini'),
                     ),
                   ],
                 ),

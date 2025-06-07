@@ -14,4 +14,5 @@ class Routes {
   static const String register = '/register';
   static const String stasiun = '/stasiun'; //
   static const String stasiundetail = '/stasiundetail';
+  static const String favorite = '/favorite';
 }

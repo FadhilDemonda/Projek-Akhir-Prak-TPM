@@ -4,6 +4,7 @@ import 'dart:async';
 import '../constants/colors.dart';
 import '../routes.dart';
 import '../services/auth_service.dart';
+import '../services/favorite_service.dart';
 import '../models/user_model.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -15,10 +16,13 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   final AuthService _authService = AuthService();
+  final FavoriteService _favoriteService = FavoriteService();
   final PageController _pageController = PageController(viewportFraction: 0.9);
+
   UserModel? _currentUser;
   Timer? _autoSlideTimer;
   bool _isLoading = true;
+  int _favoriteCount = 0; // Counter untuk jumlah favorit
 
   @override
   void initState() {
@@ -38,12 +42,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
     try {
       final user = await _authService.getCurrentUser();
       print('Loaded user: ${user?.username}'); // Debugging
+
       setState(() {
         _currentUser = user;
         _isLoading = false;
       });
+
+      // Load favorite count jika user sudah login
+      if (user != null) {
+        _loadFavoriteCount(user.id);
+      }
     } catch (e) {
       print('Error loading user: $e'); // Handle error if data not loaded
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loadFavoriteCount(String userId) async {
+    try {
+      final count = await _favoriteService.getFavoriteCount(userId);
+      setState(() {
+        _favoriteCount = count;
+      });
+    } catch (e) {
+      print('Error loading favorite count: $e');
     }
   }
 
@@ -126,6 +150,77 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  // Widget untuk tombol favorit dengan badge counter
+  Widget _buildFavoriteButton() {
+    return Stack(
+      children: [
+        IconButton(
+          icon: Icon(Icons.favorite, color: Colors.white),
+          onPressed: () async {
+            if (_currentUser != null) {
+              // Navigasi ke halaman favorit
+              final result = await Navigator.pushNamed(
+                context,
+                Routes.favorite,
+              );
+
+              // Refresh favorite count setelah kembali
+              if (result == 'updated' || result == null) {
+                _loadFavoriteCount(_currentUser!.id);
+              }
+            } else {
+              // Tampilkan snackbar jika belum login
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Silakan login terlebih dahulu'),
+                  backgroundColor: Colors.orange,
+                  action: SnackBarAction(
+                    label: 'LOGIN',
+                    textColor: Colors.white,
+                    onPressed: () {
+                      Navigator.pushNamed(context, Routes.login);
+                    },
+                  ),
+                ),
+              );
+            }
+          },
+          tooltip: 'Stasiun Favorit',
+        ),
+        // Badge counter untuk jumlah favorit
+        if (_favoriteCount > 0)
+          Positioned(
+            right: 8,
+            top: 8,
+            child: Container(
+              padding: EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: Colors.red,
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 2,
+                    offset: Offset(0, 1),
+                  ),
+                ],
+              ),
+              constraints: BoxConstraints(minWidth: 18, minHeight: 18),
+              child: Text(
+                _favoriteCount > 99 ? '99+' : _favoriteCount.toString(),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -192,7 +287,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 ),
                               ),
                               Text(
-                                _currentUser?.username ?? '',
+                                _currentUser?.username ?? 'Guest',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
@@ -212,9 +307,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ],
                       ),
                     ),
-                    IconButton(
-                      icon: Icon(Icons.notifications, color: Colors.white),
-                      onPressed: () {},
+                    // Action buttons di header
+                    Row(
+                      children: [
+                        // Tombol Favorit dengan badge
+                        _buildFavoriteButton(),
+
+                        // Tombol Notifikasi
+                        IconButton(
+                          icon: Icon(Icons.notifications, color: Colors.white),
+                          onPressed: () {
+                            // Implementasi notifikasi
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Fitur notifikasi segera hadir!'),
+                                backgroundColor: Colors.blue,
+                              ),
+                            );
+                          },
+                          tooltip: 'Notifikasi',
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -276,17 +389,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
               SizedBox(height: 24),
 
-              // Menu Buttons
+              // Menu Buttons - Tambahkan menu Favorit
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     buildMenuButton(
                       'NoiSense',
                       Icons.wifi_tethering,
                       () => Navigator.pushNamed(context, Routes.noisense),
                     ),
+                    buildMenuButton('Favorit', Icons.favorite, () async {
+                      if (_currentUser != null) {
+                        final result = await Navigator.pushNamed(
+                          context,
+                          Routes.favorite,
+                        );
+                        if (result == 'updated' || result == null) {
+                          _loadFavoriteCount(_currentUser!.id);
+                        }
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Silakan login terlebih dahulu'),
+                            backgroundColor: Colors.orange,
+                          ),
+                        );
+                      }
+                    }),
                     buildMenuButton(
                       'Feedback',
                       Icons.feedback,
@@ -369,7 +500,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             final result = await Navigator.pushNamed(context, Routes.profile);
             if (result == 'updated') {
               print('Refreshing user data after update');
-
               _loadUserData(); // refresh jika kembali dari profile
             }
           } else if (index == 2) {
@@ -382,7 +512,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             }
           }
         },
-
         items: [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),

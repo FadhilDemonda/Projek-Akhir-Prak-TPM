@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/stasiun_model.dart';
+import '../../routes.dart';
 import '../../services/stasiun_service.dart';
 import 'stasiun_detail_screen.dart';
 
@@ -170,6 +171,32 @@ class _StasiunListPageState extends State<StasiunListPage> {
                       ),
                     ),
           ),
+        ],
+      ),
+      // Bottom Navigation
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 2,
+        onTap: (index) async {
+          if (index == 0) {
+            Navigator.pushNamed(context, Routes.dashboard);
+          } else if (index == 1) {
+            // Add case for Stasiun screen
+            final result = await Navigator.pushNamed(context, Routes.profile);
+            if (result == 'updated') {
+              print('Refreshing stasiun data after update');
+              // Tambahkan fungsi refresh untuk stasiun jika diperlukan
+              // _loadStasiunData(); // uncomment jika ada fungsi ini
+            }
+          }
+        },
+
+        items: [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.train),
+            label: 'Stasiun',
+          ), // Add Stasiun item
         ],
       ),
     );

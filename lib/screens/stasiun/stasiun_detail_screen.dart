@@ -3,6 +3,8 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/stasiun_model.dart';
+import '../../services/favorite_service.dart';
+import '../../services/auth_service.dart';
 
 class StasiunDetailPage extends StatefulWidget {
   final Stasiun stasiun;
@@ -18,16 +20,152 @@ class _StasiunDetailPageState extends State<StasiunDetailPage>
   late TabController _tabController;
   final MapController _mapController = MapController();
 
+  // Service instances
+  final FavoriteService _favoriteService = FavoriteService();
+  final AuthService _authService = AuthService();
+
+  // State variables untuk favorite
+  bool _isFavorite = false;
+  bool _isLoadingFavorite = false;
+  String? _currentUserId;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _initializeFavoriteStatus(); // Inisialisasi status favorite
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  // Fungsi untuk menginisialisasi status favorite stasiun
+  Future<void> _initializeFavoriteStatus() async {
+    try {
+      // Ambil data user yang sedang login
+      final currentUser = await _authService.getCurrentUser();
+      if (currentUser != null) {
+        _currentUserId = currentUser.id;
+
+        // Cek apakah stasiun ini sudah difavoritkan
+        bool isFav = await _favoriteService.isFavorite(
+          widget.stasiun.id,
+          _currentUserId!,
+        );
+
+        setState(() {
+          _isFavorite = isFav;
+        });
+      }
+    } catch (e) {
+      print('Error initializing favorite status: $e');
+    }
+  }
+
+  // Fungsi untuk toggle status favorite
+  Future<void> _toggleFavorite() async {
+    if (_currentUserId == null) {
+      // Tampilkan pesan jika user belum login
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Silakan login terlebih dahulu untuk menambah favorit'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoadingFavorite = true; // Tampilkan loading
+    });
+
+    try {
+      bool success;
+
+      if (_isFavorite) {
+        // Hapus dari favorit
+        success = await _favoriteService.removeFromFavorites(
+          widget.stasiun.id,
+          _currentUserId!,
+        );
+
+        if (success) {
+          setState(() {
+            _isFavorite = false;
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${widget.stasiun.nama} dihapus dari favorit'),
+              backgroundColor: Colors.red[600],
+              action: SnackBarAction(
+                label: 'UNDO',
+                textColor: Colors.white,
+                onPressed:
+                    () =>
+                        _addToFavorite(), // Tambah kembali jika user menekan UNDO
+              ),
+            ),
+          );
+        }
+      } else {
+        // Tambah ke favorit
+        success = await _addToFavorite();
+      }
+    } catch (e) {
+      print('Error toggling favorite: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Terjadi kesalahan, silakan coba lagi'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isLoadingFavorite = false; // Sembunyikan loading
+      });
+    }
+  }
+
+  // Fungsi helper untuk menambah ke favorit
+  Future<bool> _addToFavorite() async {
+    bool success = await _favoriteService.addToFavorites(
+      widget.stasiun,
+      _currentUserId!,
+    );
+
+    if (success) {
+      setState(() {
+        _isFavorite = true;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${widget.stasiun.nama} ditambahkan ke favorit'),
+          backgroundColor: Colors.green[600],
+          action: SnackBarAction(
+            label: 'LIHAT',
+            textColor: Colors.white,
+            onPressed: () {
+              // Navigasi ke halaman favorit (implementasi sesuai routing app)
+              // Navigator.pushNamed(context, '/favorites');
+            },
+          ),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Stasiun sudah ada di favorit'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
+
+    return success;
   }
 
   Future<void> _openInMaps() async {
@@ -60,18 +198,41 @@ class _StasiunDetailPageState extends State<StasiunDetailPage>
               ),
             ),
             actions: [
+              // Tombol Favorite (menggantikan share)
               Container(
                 margin: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: Colors.black.withOpacity(0.3),
                   shape: BoxShape.circle,
                 ),
-                child: IconButton(
-                  icon: const Icon(Icons.share, color: Colors.white),
-                  onPressed: () {
-                    // Implement share functionality
-                  },
-                ),
+                child:
+                    _isLoadingFavorite
+                        ? Container(
+                          padding: const EdgeInsets.all(12),
+                          child: const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
+                            ),
+                          ),
+                        )
+                        : IconButton(
+                          icon: Icon(
+                            _isFavorite
+                                ? Icons.favorite
+                                : Icons.favorite_border,
+                            color: _isFavorite ? Colors.red[400] : Colors.white,
+                          ),
+                          onPressed: _toggleFavorite,
+                          tooltip:
+                              _isFavorite
+                                  ? 'Hapus dari favorit'
+                                  : 'Tambah ke favorit',
+                        ),
               ),
             ],
             flexibleSpace: FlexibleSpaceBar(
@@ -111,13 +272,50 @@ class _StasiunDetailPageState extends State<StasiunDetailPage>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          widget.stasiun.nama,
-                          style: const TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                widget.stasiun.nama,
+                                style: const TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                            // Indikator favorite di header
+                            if (_isFavorite)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.red[400],
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.favorite,
+                                      color: Colors.white,
+                                      size: 14,
+                                    ),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'Favorit',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
                         ),
                         const SizedBox(height: 8),
                         Row(
@@ -186,6 +384,61 @@ class _StasiunDetailPageState extends State<StasiunDetailPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Favorite Status Card (tambahan)
+          if (_currentUserId != null)
+            Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              color: _isFavorite ? Colors.red[50] : Colors.grey[50],
+              child: InkWell(
+                onTap: _toggleFavorite,
+                borderRadius: BorderRadius.circular(16),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _isFavorite ? Icons.favorite : Icons.favorite_border,
+                        color: _isFavorite ? Colors.red[600] : Colors.grey[600],
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _isFavorite
+                              ? 'Hapus dari stasiun favorit'
+                              : 'Tambahkan ke stasiun favorit',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color:
+                                _isFavorite
+                                    ? Colors.red[700]
+                                    : Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                      if (_isLoadingFavorite)
+                        const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      else
+                        Icon(
+                          Icons.arrow_forward_ios,
+                          color: Colors.grey[400],
+                          size: 16,
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          if (_currentUserId != null) const SizedBox(height: 20),
+
           // Description Card
           Card(
             elevation: 4,
@@ -363,7 +616,7 @@ class _StasiunDetailPageState extends State<StasiunDetailPage>
                     height: 80,
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.blue[700],
+                        color: _isFavorite ? Colors.red[600] : Colors.blue[700],
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
@@ -373,8 +626,8 @@ class _StasiunDetailPageState extends State<StasiunDetailPage>
                           ),
                         ],
                       ),
-                      child: const Icon(
-                        Icons.train,
+                      child: Icon(
+                        _isFavorite ? Icons.favorite : Icons.train,
                         color: Colors.white,
                         size: 30,
                       ),
@@ -391,18 +644,47 @@ class _StasiunDetailPageState extends State<StasiunDetailPage>
           color: Colors.white,
           child: Row(
             children: [
-              Icon(Icons.train, color: Colors.blue[700], size: 20),
+              Icon(
+                _isFavorite ? Icons.favorite : Icons.train,
+                color: _isFavorite ? Colors.red[600] : Colors.blue[700],
+                size: 20,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      widget.stasiun.nama,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            widget.stasiun.nama,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        if (_isFavorite)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.red[100],
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              'Favorit',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.red[700],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                     Text(
                       '${widget.stasiun.latitude.toStringAsFixed(4)}, ${widget.stasiun.longitude.toStringAsFixed(4)}',

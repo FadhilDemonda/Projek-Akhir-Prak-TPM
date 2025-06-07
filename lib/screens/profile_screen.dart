@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kai/models/user_model.dart';
 import 'package:kai/screens/edit_profile.dart';
+import '../routes.dart';
 import '../services/auth_service.dart';
 import '../constants/colors.dart';
 
@@ -214,18 +215,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
         currentIndex: 1,
         onTap: (index) {
           if (index == 0) {
-            Navigator.pop(context);
+            Navigator.pushNamed(context, Routes.dashboard);
+          } else if (index == 2) {
+            // Add case for Stasiun screen
+            final result = Navigator.pushNamed(context, Routes.stasiun);
+            if (result == 'updated') {
+              print('Refreshing stasiun data after update');
+              // Tambahkan fungsi refresh untuk stasiun jika diperlukan
+              // _loadStasiunData(); // uncomment jika ada fungsi ini
+            }
           }
         },
-        items: const [
+
+        items: [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
           BottomNavigationBarItem(
-            icon: Icon(Icons.home, color: Colors.grey),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person, color: Colors.orange),
-            label: 'Profile',
-          ),
+            icon: Icon(Icons.train),
+            label: 'Stasiun',
+          ), // Add Stasiun item
         ],
       ),
     );

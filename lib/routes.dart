@@ -12,4 +12,6 @@ class Routes {
   static const String saranaPrasarana = '/sarana_prasarana';
   static const String locationInfoSarana = '/location_info_sarana';
   static const String register = '/register';
+  static const String stasiun = '/stasiun'; //
+  static const String stasiundetail = '/stasiundetail';
 }

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:kai/screens/stasiun/stasiun_detail_screen.dart';
+import 'package:kai/screens/stasiun/stasiun_list_screen.dart';
 import 'models/user_model.dart';
 import 'routes.dart';
 import 'screens/splash_screen.dart';
@@ -72,6 +74,8 @@ class MyApp extends StatelessWidget {
         Routes.feedback: (context) => const FeedbackScreen(),
         Routes.panduan: (context) => const PanduanScreen(),
         Routes.saranaPrasarana: (context) => const SaranaPrasaranaScreen(),
+        Routes.stasiun: (context) => const StasiunListPage(),
+        // Routes.stasiundetail: (context) => const StasiunDetailPage(stasiun: null,),
         Routes.register:
             (context) => const RegisterScreen(), // Tambahkan rute register
       },

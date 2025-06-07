@@ -372,11 +372,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
               _loadUserData(); // refresh jika kembali dari profile
             }
+          } else if (index == 2) {
+            // Add case for Stasiun screen
+            final result = await Navigator.pushNamed(context, Routes.stasiun);
+            if (result == 'updated') {
+              print('Refreshing stasiun data after update');
+              // Tambahkan fungsi refresh untuk stasiun jika diperlukan
+              // _loadStasiunData(); // uncomment jika ada fungsi ini
+            }
           }
         },
+
         items: [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.train),
+            label: 'Stasiun',
+          ), // Add Stasiun item
         ],
       ),
     );

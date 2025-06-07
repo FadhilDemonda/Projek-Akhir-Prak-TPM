@@ -351,12 +351,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
         currentIndex: 0,
         onTap: (index) async {
           if (index == 1) {
+            // Ketika menekan tombol Profile
             final result = await Navigator.pushNamed(context, Routes.profile);
             if (result == 'updated') {
-              _loadUserData(); // refresh jika kembali dari profile
+              // Refresh data setelah kembali dari profile
+              _loadUserData();
             }
           }
         },
+
         items: [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),

@@ -20,6 +20,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _userFuture = _getUserInfo();
   }
 
+  // Fetch user data from SharedPreferences and Hive
   Future<Map<String, String>> _getUserInfo() async {
     final user = await AuthService().getCurrentUser();
     if (user == null) {
@@ -41,7 +42,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _reloadUser() {
     setState(() {
-      _userFuture = _getUserInfo();
+      _userFuture = _getUserInfo(); // Reload data from AuthService and Hive
     });
   }
 
@@ -95,6 +96,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   icon: const Icon(Icons.settings, color: Colors.indigo),
                   label: const Text('Edit Profile'),
+                  // Di dalam ProfileScreen setelah update
                   onPressed: () async {
                     final updatedUser = await Navigator.push(
                       context,
@@ -102,26 +104,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         builder:
                             (_) => EditProfileScreen(
                               user: UserModel(
-                                id: user['id'] ?? '', // Pastikan id tidak null
+                                id: user['id'] ?? '',
                                 username:
                                     user['username'] ??
-                                    'Username tidak tersedia', // Menangani null
+                                    'Username tidak tersedia',
                                 instansi:
                                     user['instansi'] ??
-                                    'Instansi tidak tersedia', // Menangani null
-                                profileImageUrl:
-                                    user['profileImageUrl'] ??
-                                    '', // Menangani null
-                                password:
-                                    user['password'] ?? '', // Menangani null
+                                    'Instansi tidak tersedia',
+                                profileImageUrl: user['profileImageUrl'] ?? '',
+                                password: user['password'] ?? '',
                               ),
                             ),
                       ),
                     );
 
                     if (updatedUser != null) {
-                      _reloadUser(); // ini akan memicu setState
-                      Navigator.pop(context, 'updated'); // <- ini penting
+                      _reloadUser(); // Force data reload after updating
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Profil berhasil diperbarui'),
+                        ),
+                      );
+                      Navigator.pop(context, 'updated');
                     }
                   },
                 ),

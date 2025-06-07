@@ -45,13 +45,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
 
     // Create a new UserModel with updated data
-    final updatedUser = widget.user.copyWith(
+    final updatedUser = UserModel(
+      id: widget.user.id ?? 'default_id', // Pastikan ada id
       username: _usernameController.text.trim(),
       instansi: _instansiController.text.trim(),
-      password:
-          _passwordController.text.isNotEmpty
-              ? _passwordController.text.trim()
-              : widget.user.password, // Only change password if it's not empty
+      profileImageUrl: widget.user.profileImageUrl ?? '',
+      password: _passwordController.text.trim(),
     );
 
     // Call the AuthService to update the user data

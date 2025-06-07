@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../routes.dart';
 
@@ -22,20 +24,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
       final String password = _passwordController.text;
       final String instansi = _instansiController.text;
 
+      // Membuat objek user baru
+      final newUser = UserModel.create(
+        username: username,
+        instansi: instansi,
+        password: password,
+      );
+
       try {
-        // Panggil AuthService untuk registrasi user
+        final userBox = await Hive.openBox('userBox');
+
+        // Simpan pengguna dengan key unik berdasarkan username
+        await userBox.put(
+          username,
+          newUser,
+        ); // Menggunakan username sebagai key unik
+
+        // Panggil fungsi login dari AuthService untuk menyimpan status login
         final authService = AuthService();
+        await authService.login(username, instansi, password);
 
-        // Panggil method register() dari AuthService
-        await authService.register(username, instansi, password);
-
-        // Setelah berhasil registrasi, navigasi ke halaman login
+        // Setelah menyimpan dan login berhasil, navigasi ke halaman login
         Navigator.pushReplacementNamed(
           context,
           Routes.login,
         ); // Gunakan pushReplacementNamed untuk mengganti halaman
       } catch (e) {
-        print('Error during registration: $e');
+        print('Error saving user: $e');
       }
     }
   }

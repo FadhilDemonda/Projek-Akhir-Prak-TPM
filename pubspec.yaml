@@ -51,7 +51,6 @@ dependencies:
   url_launcher: ^6.3.1
   audioplayers: ^6.4.0
   flutter_local_notifications: ^19.2.1
-  uuid: ^3.0.4 # Pastikan versinya sesuai
 
 dev_dependencies:
   flutter_test:

@@ -45,12 +45,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
+  // Function to show the confirmation dialog
+  void _showDeleteConfirmation() {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text("Hapus Akun"),
+            content: const Text("Apakah Anda yakin ingin menghapus akun ini?"),
+            actions: <Widget>[
+              TextButton(
+                child: const Text("Batal"),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+              TextButton(
+                child: const Text("Hapus"),
+                onPressed: () async {
+                  Navigator.of(context).pop(); // Close dialog
+
+                  // Call AuthService to delete the user
+                  final success = await AuthService().deleteUser();
+                  if (success) {
+                    // Show success and log out the user
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Akun berhasil dihapus")),
+                    );
+                    Navigator.pushReplacementNamed(
+                      context,
+                      '/login',
+                    ); // Navigate to login screen
+                  } else {
+                    // Show error if deletion failed
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Gagal menghapus akun")),
+                    );
+                  }
+                },
+              ),
+            ],
+          ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profil Pengguna'),
         backgroundColor: AppColors.primary,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_forever),
+            onPressed:
+                _showDeleteConfirmation, // Trigger delete confirmation modal
+          ),
+        ],
       ),
       body: FutureBuilder<Map<String, String>>(
         future: _userFuture,
@@ -105,10 +156,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 id: user['id'] ?? '', // Pastikan id tidak null
                                 username:
                                     user['username'] ??
-                                    'Username tidak tersedia', // Menangani null
+                                    'Username tidak tersedia',
                                 instansi:
                                     user['instansi'] ??
-                                    'Instansi tidak tersedia', // Menangani null
+                                    'Instansi tidak tersedia',
                                 profileImageUrl:
                                     user['profileImageUrl'] ??
                                     '', // Menangani null

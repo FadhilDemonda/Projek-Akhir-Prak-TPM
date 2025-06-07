@@ -20,11 +20,11 @@ import 'constants/colors.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
-  // Daftarkan adapter untuk UserModel
-  Hive.registerAdapter(UserModelAdapter());
-  await Hive.openBox(
-    'userBox',
-  ); // Pastikan box sudah dibuka sebelum aplikasi berjalan
+
+  // Buka box tanpa tipe karena kita tidak menggunakan @HiveType/@HiveField
+  var box = await Hive.openBox('userBox'); // Buka hanya sekali
+
+  // Pastikan box sudah dibuka sebelum aplikasi berjalan
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]).then((
     _,
   ) {

@@ -35,11 +35,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _loadUserData() async {
-    final user = await _authService.getCurrentUser();
-    setState(() {
-      _currentUser = user;
-      _isLoading = false;
-    });
+    try {
+      final user = await _authService.getCurrentUser();
+      print('Loaded user: ${user?.username}'); // Debugging
+      setState(() {
+        _currentUser = user;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading user: $e'); // Handle error if data not loaded
+    }
   }
 
   void _startAutoSlide() {
@@ -153,17 +158,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           context,
                           Routes.profile,
                         );
+                        print('Returning from profile screen');
                         if (result == 'updated') {
-                          _loadUserData(); // muat ulang data user setelah kembali
+                          print('Refreshing user data after update');
+                          _loadUserData(); // Memastikan kita memuat ulang data user setelah kembali
                         }
                       },
                       child: Row(
                         children: [
+                          // Profile Image URL handling here
                           CircleAvatar(
                             radius: 24,
-                            backgroundImage: AssetImage(
-                              'assets/images/avatar.png',
-                            ),
+                            backgroundImage:
+                                _currentUser?.profileImageUrl != null &&
+                                        _currentUser!
+                                            .profileImageUrl!
+                                            .isNotEmpty
+                                    ? NetworkImage(
+                                      _currentUser!.profileImageUrl!,
+                                    )
+                                    : AssetImage('assets/images/avatar.png')
+                                        as ImageProvider,
                           ),
                           SizedBox(width: 12),
                           Column(
@@ -353,6 +368,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           if (index == 1) {
             final result = await Navigator.pushNamed(context, Routes.profile);
             if (result == 'updated') {
+              print('Refreshing user data after update');
+
               _loadUserData(); // refresh jika kembali dari profile
             }
           }

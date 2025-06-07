@@ -34,20 +34,34 @@ class _LoginScreenState extends State<LoginScreen> {
         final userBox = await Hive.openBox('userBox');
 
         // Ambil data pengguna berdasarkan username (key unik)
-        final storedUser = userBox.get(username) as UserModel?;
+        final storedUserMap = userBox.get(username) as Map<String, dynamic>?;
 
-        if (storedUser != null && storedUser.password == password) {
-          // Login berhasil, simpan status login di SharedPreferences
-          final authService = AuthService();
-          await authService.login(username, storedUser.instansi, password);
+        if (storedUserMap != null) {
+          final storedUser = UserModel.fromMap(storedUserMap);
 
-          // Arahkan ke halaman dashboard
-          Navigator.pushReplacementNamed(context, Routes.dashboard);
+          if (storedUser.password == password) {
+            // Login berhasil, simpan status login di SharedPreferences
+            final authService = AuthService();
+            await authService.login(username, storedUser.instansi, password);
+
+            // Arahkan ke halaman dashboard
+            Navigator.pushReplacementNamed(context, Routes.dashboard);
+          } else {
+            // Tampilkan pesan error jika login gagal
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Username atau password salah. Silakan coba lagi.',
+                ),
+                backgroundColor: AppColors.error,
+              ),
+            );
+          }
         } else {
-          // Tampilkan pesan error jika login gagal
+          // Tampilkan pesan error jika username tidak ditemukan
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Username atau password salah. Silakan coba lagi.'),
+              content: Text('Username tidak ditemukan. Silakan coba lagi.'),
               backgroundColor: AppColors.error,
             ),
           );

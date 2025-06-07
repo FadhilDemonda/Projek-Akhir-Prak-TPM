@@ -1,38 +1,26 @@
-import 'package:hive/hive.dart';
-
-part 'user_model.g.dart'; // Membuat file .g.dart secara otomatis setelah build
-
-@HiveType(typeId: 1) // Tentukan typeId yang unik untuk model ini
 class UserModel {
-  @HiveField(0) // Field pertama untuk id
   final String id;
-
-  @HiveField(1) // Field kedua untuk username
   final String username;
-
-  @HiveField(2) // Field ketiga untuk instansi
   final String instansi;
-
-  @HiveField(3)
-  final String password; // Add the password field
-
-  @HiveField(4) // Field keempat untuk profileImageUrl (optional)
+  final String password;
   final String? profileImageUrl;
 
-  // Constructor untuk membuat user baru (id belum ada/otomatis di-generate backend)
+  // Constructor untuk membuat user baru (id otomatis di-generate)
   UserModel.create({
     required this.username,
     required this.instansi,
-    required this.password, // Ensure password is passed
+    required this.password,
     this.profileImageUrl,
-  }) : id = ''; // id kosong dulu, karena belum ada saat pembuatan baru
+  }) : id =
+           DateTime.now().millisecondsSinceEpoch
+               .toString(); // ID menggunakan timestamp
 
-  // Constructor untuk user yang sudah ada (misal dari database/API), id pasti ada
+  // Constructor untuk user yang sudah ada
   UserModel({
     required this.id,
     required this.username,
     required this.instansi,
-    required this.password, // Ensure password is included here
+    required this.password,
     this.profileImageUrl,
   });
 
@@ -41,6 +29,7 @@ class UserModel {
       'id': id,
       'username': username,
       'instansi': instansi,
+      'password': password,
       'profileImageUrl': profileImageUrl,
     };
   }
@@ -50,7 +39,7 @@ class UserModel {
       id: map['id'] ?? '',
       username: map['username'] ?? '',
       instansi: map['instansi'] ?? '',
-      password: map['password'] ?? '', // Make sure password is retrieved
+      password: map['password'] ?? '',
       profileImageUrl: map['profileImageUrl'],
     );
   }
@@ -67,7 +56,6 @@ class UserModel {
       username: username ?? this.username,
       instansi: instansi ?? this.instansi,
       password: password ?? this.password,
-
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
     );
   }

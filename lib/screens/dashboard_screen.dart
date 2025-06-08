@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
+import 'package:sensors_plus/sensors_plus.dart'; // Package untuk accelerometer
 import 'dart:async';
+import 'dart:math'; // Untuk perhitungan matematika
 import '../constants/colors.dart';
 import '../routes.dart';
 import '../services/auth_service.dart';
@@ -24,18 +26,138 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _isLoading = true;
   int _favoriteCount = 0; // Counter untuk jumlah favorit
 
+  // Variabel untuk shake detection
+  StreamSubscription<AccelerometerEvent>? _accelerometerSubscription;
+  double _shakeThreshold =
+      30.0; // Ambang batas untuk deteksi guncangan (semakin tinggi semakin sensitif)
+  DateTime? _lastShakeTime; // Waktu guncangan terakhir untuk mencegah spam
+  int _shakeCooldown = 30000; // Cooldown 2 detik antara guncangan
+
   @override
   void initState() {
     super.initState();
     _loadUserData();
     _startAutoSlide();
+    _initializeShakeDetection(); // Inisialisasi deteksi guncangan
   }
 
   @override
   void dispose() {
     _autoSlideTimer?.cancel();
     _pageController.dispose();
+    _accelerometerSubscription
+        ?.cancel(); // Bersihkan subscription accelerometer
     super.dispose();
+  }
+
+  // Fungsi untuk menginisialisasi deteksi guncangan
+  void _initializeShakeDetection() {
+    // Listen ke data accelerometer dari sensor ponsel
+    _accelerometerSubscription = accelerometerEvents.listen((
+      AccelerometerEvent event,
+    ) {
+      // Hitung magnitude (kekuatan) dari gerakan pada sumbu X, Y, Z
+      double magnitude = sqrt(
+        pow(event.x, 2) + pow(event.y, 2) + pow(event.z, 2),
+      );
+
+      // Jika magnitude melebihi threshold dan sudah melewati cooldown
+      if (magnitude > _shakeThreshold && _canDetectShake()) {
+        _onShakeDetected(); // Panggil fungsi ketika guncangan terdeteksi
+      }
+    });
+  }
+
+  // Fungsi untuk mengecek apakah bisa mendeteksi guncangan (cooldown)
+  bool _canDetectShake() {
+    DateTime now = DateTime.now();
+    if (_lastShakeTime == null) {
+      return true;
+    }
+
+    // Cek apakah sudah melewati cooldown period
+    return now.difference(_lastShakeTime!).inMilliseconds > _shakeCooldown;
+  }
+
+  // Fungsi yang dipanggil ketika guncangan terdeteksi
+  void _onShakeDetected() {
+    _lastShakeTime = DateTime.now(); // Update waktu guncangan terakhir
+
+    // Tampilkan dialog konfirmasi untuk membuka panduan
+    _showShakeDialog();
+  }
+
+  // Dialog yang muncul ketika shake terdeteksi
+  void _showShakeDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.vibration, color: AppColors.primary, size: 28),
+              SizedBox(width: 8),
+              Text(
+                'Guncangan Terdeteksi!',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.menu_book, size: 60, color: AppColors.primary),
+              SizedBox(height: 16),
+              Text(
+                'Apakah Anda ingin membuka Panduan Aplikasi?',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 16),
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Guncang ponsel untuk akses cepat ke panduan!',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Tutup dialog
+              },
+              child: Text('Tidak', style: TextStyle(color: Colors.grey[600])),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Tutup dialog
+                Navigator.pushNamed(
+                  context,
+                  Routes.panduan,
+                ); // Buka halaman panduan
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(
+                'Ya, Buka Panduan',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _loadUserData() async {
@@ -234,7 +356,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header
+              // Header dengan info shake
               Container(
                 padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -244,90 +366,129 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     end: Alignment.bottomRight,
                   ),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                child: Column(
                   children: [
-                    GestureDetector(
-                      onTap: () async {
-                        final result = await Navigator.pushNamed(
-                          context,
-                          Routes.profile,
-                        );
-                        print('Returning from profile screen');
-                        if (result == 'updated') {
-                          print('Refreshing user data after update');
-                          _loadUserData(); // Memastikan kita memuat ulang data user setelah kembali
-                        }
-                      },
-                      child: Row(
-                        children: [
-                          // Profile Image URL handling here
-                          CircleAvatar(
-                            radius: 24,
-                            backgroundImage:
-                                _currentUser?.profileImageUrl != null &&
-                                        _currentUser!
-                                            .profileImageUrl!
-                                            .isNotEmpty
-                                    ? NetworkImage(
-                                      _currentUser!.profileImageUrl!,
-                                    )
-                                    : AssetImage('assets/images/avatar.png')
-                                        as ImageProvider,
-                          ),
-                          SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        GestureDetector(
+                          onTap: () async {
+                            final result = await Navigator.pushNamed(
+                              context,
+                              Routes.profile,
+                            );
+                            print('Returning from profile screen');
+                            if (result == 'updated') {
+                              print('Refreshing user data after update');
+                              _loadUserData(); // Memastikan kita memuat ulang data user setelah kembali
+                            }
+                          },
+                          child: Row(
                             children: [
-                              Text(
-                                'Selamat Datang!',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.white70,
-                                ),
+                              // Profile Image URL handling here
+                              CircleAvatar(
+                                radius: 24,
+                                backgroundImage:
+                                    _currentUser?.profileImageUrl != null &&
+                                            _currentUser!
+                                                .profileImageUrl!
+                                                .isNotEmpty
+                                        ? NetworkImage(
+                                          _currentUser!.profileImageUrl!,
+                                        )
+                                        : AssetImage('assets/images/avatar.png')
+                                            as ImageProvider,
                               ),
-                              Text(
-                                _currentUser?.username ?? 'Guest',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              if (_currentUser?.instansi != null)
-                                Text(
-                                  _currentUser!.instansi,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.white70,
+                              SizedBox(width: 12),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Selamat Datang!',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.white70,
+                                    ),
                                   ),
-                                ),
+                                  Text(
+                                    _currentUser?.username ?? 'Guest',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  if (_currentUser?.instansi != null)
+                                    Text(
+                                      _currentUser!.instansi,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.white70,
+                                      ),
+                                    ),
+                                ],
+                              ),
                             ],
+                          ),
+                        ),
+                        // Action buttons di header
+                        Row(
+                          children: [
+                            // Tombol Favorit dengan badge
+                            _buildFavoriteButton(),
+
+                            // Tombol Notifikasi
+                            IconButton(
+                              icon: Icon(
+                                Icons.notifications,
+                                color: Colors.white,
+                              ),
+                              onPressed: () {
+                                // Implementasi notifikasi
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'Fitur notifikasi segera hadir!',
+                                    ),
+                                    backgroundColor: Colors.blue,
+                                  ),
+                                );
+                              },
+                              tooltip: 'Notifikasi',
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    // Info shake gesture - tambahan
+                    SizedBox(height: 8),
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.3),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.vibration, size: 16, color: Colors.white),
+                          SizedBox(width: 6),
+                          Text(
+                            'Guncang ponsel untuk akses cepat ke Panduan',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                    // Action buttons di header
-                    Row(
-                      children: [
-                        // Tombol Favorit dengan badge
-                        _buildFavoriteButton(),
-
-                        // Tombol Notifikasi
-                        IconButton(
-                          icon: Icon(Icons.notifications, color: Colors.white),
-                          onPressed: () {
-                            // Implementasi notifikasi
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Fitur notifikasi segera hadir!'),
-                                backgroundColor: Colors.blue,
-                              ),
-                            );
-                          },
-                          tooltip: 'Notifikasi',
-                        ),
-                      ],
                     ),
                   ],
                 ),

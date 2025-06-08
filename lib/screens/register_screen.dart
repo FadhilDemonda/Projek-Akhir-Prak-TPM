@@ -4,7 +4,6 @@ import '../models/user_model.dart';
 import '../constants/colors.dart';
 import '../constants/string.dart';
 import '../routes.dart';
-import '../services/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});

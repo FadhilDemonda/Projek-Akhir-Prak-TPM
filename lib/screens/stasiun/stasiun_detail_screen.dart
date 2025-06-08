@@ -146,14 +146,14 @@ class _StasiunDetailPageState extends State<StasiunDetailPage>
         SnackBar(
           content: Text('${widget.stasiun.nama} ditambahkan ke favorit'),
           backgroundColor: Colors.green[600],
-          action: SnackBarAction(
-            label: 'LIHAT',
-            textColor: Colors.white,
-            onPressed: () {
-              // Navigasi ke halaman favorit (implementasi sesuai routing app)
-              // Navigator.pushNamed(context, '/favorites');
-            },
-          ),
+          //   action: SnackBarAction(
+          //     label: 'LIHAT',
+          //     textColor: Colors.white,
+          //     onPressed: () {
+          //       // Navigasi ke halaman favorit (implementasi sesuai routing app)
+          //       // Navigator.pushNamed(context, '/favorites');
+          //     },
+          //   ),
         ),
       );
     } else {

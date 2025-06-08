@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'services/notification_service.dart';
+
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:kai/screens/stasiun/stasiun_favorite_screen.dart';
@@ -21,6 +23,7 @@ import 'constants/colors.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
+  await NotificationService().initialize();
 
   // Buka box tanpa tipe karena kita tidak menggunakan @HiveType/@HiveField
   var box = await Hive.openBox('userBox'); // Buka hanya sekali

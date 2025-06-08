@@ -29,7 +29,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // Variabel untuk shake detection
   StreamSubscription<AccelerometerEvent>? _accelerometerSubscription;
   double _shakeThreshold =
-      30.0; // Ambang batas untuk deteksi guncangan (semakin tinggi semakin sensitif)
+      35.0; // Ambang batas untuk deteksi guncangan (semakin tinggi semakin sensitif)
   DateTime? _lastShakeTime; // Waktu guncangan terakhir untuk mencegah spam
   int _shakeCooldown = 30000; // Cooldown 2 detik antara guncangan
 

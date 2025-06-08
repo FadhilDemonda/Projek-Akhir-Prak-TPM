@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/stasiun_model.dart';
+import '../../routes.dart';
 import '../../services/favorite_service.dart';
 import '../../services/auth_service.dart';
 import 'stasiun_detail_screen.dart';
@@ -388,7 +389,7 @@ class _FavoritePageState extends State<FavoritePage> {
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: () {
-                Navigator.pop(context); // Kembali ke halaman sebelumnya
+                Navigator.pushNamed(context, Routes.stasiun);
               },
               icon: const Icon(Icons.explore),
               label: const Text('Jelajahi Stasiun'),

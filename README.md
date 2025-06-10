@@ -1,6 +1,7 @@
-# tes
+# Projek Akhir Praktikum TPM Noisense
 
-A new Flutter project.
+Dewangga Mukti ( 123220208 )
+Mohammad Fadhil Demonda (123220137 )
 
 ## Getting Started
 
